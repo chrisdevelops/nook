@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { ANSI_RED, ANSI_RESET } from "./ansi-colors.ts";
+import { ANSI_RED, ANSI_RESET, ANSI_YELLOW } from "./ansi-colors.ts";
 import { createLogger } from "./logger.ts";
 
 type Capture = {
@@ -36,7 +36,7 @@ describe("createLogger", () => {
     expect(stderr.chunks).toEqual([]);
   });
 
-  test("warn writes to stderr with a trailing newline", () => {
+  test("warn writes to stderr in yellow with a trailing newline", () => {
     const stdout = capture();
     const stderr = capture();
     const logger = createLogger({
@@ -50,10 +50,10 @@ describe("createLogger", () => {
     logger.warn("careful");
 
     expect(stdout.chunks).toEqual([]);
-    expect(stderr.chunks).toEqual(["careful\n"]);
+    expect(stderr.chunks).toEqual([`${ANSI_YELLOW}careful${ANSI_RESET}\n`]);
   });
 
-  test("error writes to stderr with a trailing newline", () => {
+  test("error writes to stderr in red with a trailing newline", () => {
     const stdout = capture();
     const stderr = capture();
     const logger = createLogger({
@@ -67,7 +67,24 @@ describe("createLogger", () => {
     logger.error("boom");
 
     expect(stdout.chunks).toEqual([]);
-    expect(stderr.chunks).toEqual(["boom\n"]);
+    expect(stderr.chunks).toEqual([`${ANSI_RED}boom${ANSI_RESET}\n`]);
+  });
+
+  test("warn and error emit plain text when color is disabled", () => {
+    const stdout = capture();
+    const stderr = capture();
+    const logger = createLogger({
+      quiet: false,
+      verbose: false,
+      color: false,
+      stdout,
+      stderr,
+    });
+
+    logger.warn("careful");
+    logger.error("boom");
+
+    expect(stderr.chunks).toEqual(["careful\n", "boom\n"]);
   });
 
   test("debug is suppressed when verbose is false", () => {
@@ -120,7 +137,7 @@ describe("createLogger", () => {
     logger.error("fatal");
 
     expect(stdout.chunks).toEqual([]);
-    expect(stderr.chunks).toEqual(["fatal\n"]);
+    expect(stderr.chunks).toEqual([`${ANSI_RED}fatal${ANSI_RESET}\n`]);
   });
 
   test("quiet still lets debug through when verbose is true", () => {

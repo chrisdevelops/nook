@@ -33,3 +33,15 @@ export const colorize = (
   color: string,
   enabled: boolean,
 ): string => (enabled ? `${color}${value}${ANSI_RESET}` : value);
+
+export const stateColors: Readonly<Record<string, string>> = {
+  active: ANSI_GREEN,
+  incubating: ANSI_CYAN,
+  paused: ANSI_YELLOW,
+  maintained: ANSI_BLUE,
+  shipped: ANSI_MAGENTA,
+  archived: ANSI_GRAY,
+};
+
+export const colorForState = (state: string): string =>
+  stateColors[state] ?? "";

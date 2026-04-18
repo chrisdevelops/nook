@@ -2,7 +2,7 @@ import {
   ANSI_BOLD,
   ANSI_RESET,
   ANSI_YELLOW,
-  colorize,
+  colorForState,
 } from "./ansi-colors.ts";
 import { renderTable } from "./render-table.ts";
 
@@ -26,12 +26,23 @@ export type RenderProjectListOptions = {
 
 const HEADER_ROW = ["NAME", "STATE", "CATEGORY", "LAST", "TAGS"] as const;
 
+const renderStateCell = (
+  state: string,
+  stale: boolean,
+  color: boolean,
+): string => {
+  if (!color) return state;
+  if (stale) return `${ANSI_YELLOW}${state}${ANSI_RESET}`;
+  const stateColor = colorForState(state);
+  return stateColor.length > 0 ? `${stateColor}${state}${ANSI_RESET}` : state;
+};
+
 const rowToCells = (
   row: ProjectListRow,
   color: boolean,
 ): readonly string[] => [
   row.name,
-  colorize(row.state, ANSI_YELLOW, color && row.stale),
+  renderStateCell(row.state, row.stale, color),
   row.category,
   row.lastTouched,
   row.tags.join(", "),

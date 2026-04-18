@@ -1,4 +1,9 @@
-import { stripAnsi } from "./ansi-colors.ts";
+import {
+  ANSI_RED,
+  ANSI_RESET,
+  ANSI_YELLOW,
+  stripAnsi,
+} from "./ansi-colors.ts";
 
 export type LoggerWritable = {
   readonly write: (chunk: string) => void;
@@ -25,6 +30,9 @@ export const createLogger = (options: LoggerOptions): Logger => {
     return `${rendered}\n`;
   };
 
+  const wrap = (message: string, color: string): string =>
+    options.color ? `${color}${message}${ANSI_RESET}` : message;
+
   return {
     info: (message) => {
       if (options.quiet) {
@@ -36,10 +44,10 @@ export const createLogger = (options: LoggerOptions): Logger => {
       if (options.quiet) {
         return;
       }
-      options.stderr.write(format(message));
+      options.stderr.write(format(wrap(message, ANSI_YELLOW)));
     },
     error: (message) => {
-      options.stderr.write(format(message));
+      options.stderr.write(format(wrap(message, ANSI_RED)));
     },
     debug: (message) => {
       if (!options.verbose) {

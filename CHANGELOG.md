@@ -6,6 +6,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-04-18
+
+### Changed
+- `nook --help` now groups commands into labelled sections (Setup, Create, State transitions, Manage, Discover, Navigate, Maintenance) for easier scanning.
+- Project state is now color-coded in `nook ls`, `nook status`, and other list output: `active` green, `incubating` cyan, `paused` yellow, `maintained` blue, `shipped` magenta, `archived` grey. Stale projects remain yellow. `--no-color` disables all colorization.
+- Warnings (e.g. orphan folder reports, non-fatal adoption failures) now print in yellow on stderr; errors print in red. Respected by `--no-color`.
+
 ## [0.8.0] - 2026-04-18
 
 ### Added

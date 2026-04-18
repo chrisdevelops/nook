@@ -1,4 +1,4 @@
-import { ANSI_BOLD, ANSI_RESET } from "./ansi-colors.ts";
+import { ANSI_BOLD, ANSI_RESET, colorForState } from "./ansi-colors.ts";
 import { renderTable } from "./render-table.ts";
 
 export type StatusStateCount = {
@@ -31,6 +31,12 @@ export const isStatusEmpty = (summary: ProjectStatusSummary): boolean => {
 const boldHeading = (value: string, color: boolean): string =>
   color ? `${ANSI_BOLD}${value}${ANSI_RESET}` : value;
 
+const renderStateLabel = (state: string, color: boolean): string => {
+  if (!color) return state;
+  const c = colorForState(state);
+  return c.length > 0 ? `${c}${state}${ANSI_RESET}` : state;
+};
+
 const renderStateBlock = (
   stateCounts: readonly StatusStateCount[],
   color: boolean,
@@ -39,7 +45,10 @@ const renderStateBlock = (
   if (nonZero.length === 0) {
     return null;
   }
-  const rows = nonZero.map((entry) => [entry.state, String(entry.count)]);
+  const rows = nonZero.map((entry) => [
+    renderStateLabel(entry.state, color),
+    String(entry.count),
+  ]);
   const table = renderTable(rows, { aligns: ["left", "right"] });
   return `${boldHeading("Projects by state:", color)}\n${table}`;
 };

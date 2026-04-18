@@ -32,6 +32,7 @@ import { registerUnmaintainCommand } from "../commands/unmaintain.ts";
 import { registerUnpauseCommand } from "../commands/unpause.ts";
 import { registerUnshipCommand } from "../commands/unship.ts";
 import type { CommandContext } from "./command-types.ts";
+import { applyHelpGroups } from "./help-groups.ts";
 
 export const registerCommands = (
   program: Command,
@@ -65,5 +66,6 @@ export const registerCommands = (
   registerScanCommand(program, ctx);
   registerReindexCommand(program, ctx);
   registerDoctorCommand(program, ctx);
+  applyHelpGroups(program);
   registerConfiguredAliases(program, ctx, ctx.config);
 };
