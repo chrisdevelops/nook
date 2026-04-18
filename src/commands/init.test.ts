@@ -243,6 +243,26 @@ describe("handleInit — happy path", () => {
 
     expect(captured.info.some((l) => l.includes("nook new"))).toBe(true);
   });
+
+  test("writes nothing when user declines at the summary prompt", async () => {
+    const projectsDir = join(workdir, "Projects");
+    const { ctx, appPaths, rcCalls } = await buildContext(workdir, {
+      scripted: {
+        inputs: [projectsDir, "active", "60", "7"],
+        selects: ["__skip", "__skip"],
+        confirms: [true, false],
+      },
+    });
+
+    const result = await handleInit({}, ctx);
+
+    expect(result.ok).toBe(true);
+
+    const { access } = await import("node:fs/promises");
+    await expect(access(appPaths.configFilePath)).rejects.toBeDefined();
+    await expect(access(projectsDir)).rejects.toBeDefined();
+    expect(rcCalls).toEqual([]);
+  });
 });
 
 describe("handleInit — existing config", () => {
