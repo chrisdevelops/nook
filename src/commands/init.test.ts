@@ -415,3 +415,54 @@ describe("handleInit — shell integration", () => {
     ).toBe(true);
   });
 });
+
+describe("handleInit — editor and AI tool detection", () => {
+  let workdir: string;
+
+  beforeEach(async () => {
+    workdir = await mkdtemp(join(tmpdir(), "nook-init-"));
+  });
+
+  afterEach(async () => {
+    await rm(workdir, { recursive: true, force: true });
+  });
+
+  test("surfaces detected editors and writes chosen value to editors.default", async () => {
+    const projectsDir = join(workdir, "Projects");
+    const detectCalls: string[] = [];
+    const { ctx, appPaths, stubs } = await buildContext(workdir, {
+      detectBinaryOnPath: async (name) => {
+        detectCalls.push(name);
+        if (name === "code" || name === "cursor") {
+          return `/usr/local/bin/${name}`;
+        }
+        if (name === "claude") {
+          return "/usr/local/bin/claude";
+        }
+        return null;
+      },
+      scripted: {
+        inputs: [projectsDir, "active", "60", "7"],
+        selects: ["cursor", "claude"],
+        confirms: [false, true],
+      },
+    });
+
+    const result = await handleInit({}, ctx);
+    expect(result.ok).toBe(true);
+
+    const raw = await readFile(appPaths.configFilePath, "utf8");
+    const parsed = JSON.parse(raw) as GlobalConfig;
+    expect(parsed.editors.default).toBe("cursor");
+    expect(parsed.ai.default).toBe("claude");
+
+    expect(detectCalls).toContain("code");
+    expect(detectCalls).toContain("cursor");
+    expect(detectCalls).toContain("claude");
+
+    const editorChoices = (
+      stubs.selectCalls[0] as { choices: readonly { value: string }[] }
+    ).choices.map((c) => c.value);
+    expect(editorChoices).toEqual(["code", "cursor", "__other", "__skip"]);
+  });
+});
