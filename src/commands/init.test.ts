@@ -296,3 +296,51 @@ describe("handleInit — existing config", () => {
     expect(parsed.defaults.staleness_days).toBe(60);
   });
 });
+
+describe("handleInit — validation", () => {
+  let workdir: string;
+
+  beforeEach(async () => {
+    workdir = await mkdtemp(join(tmpdir(), "nook-init-"));
+  });
+
+  afterEach(async () => {
+    await rm(workdir, { recursive: true, force: true });
+  });
+
+  test("rejects reserved category names (lab, archived, shipped)", async () => {
+    const projectsDir = join(workdir, "Projects");
+    const { ctx, appPaths } = await buildContext(workdir, {
+      scripted: {
+        inputs: [projectsDir, "active,shipped,client"],
+      },
+    });
+
+    const result = await handleInit({}, ctx);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe("validation");
+      expect(result.error.message).toContain("shipped");
+    }
+    const { access } = await import("node:fs/promises");
+    await expect(access(appPaths.configFilePath)).rejects.toBeDefined();
+  });
+
+  test("rejects non-numeric staleness threshold", async () => {
+    const projectsDir = join(workdir, "Projects");
+    const { ctx } = await buildContext(workdir, {
+      scripted: {
+        inputs: [projectsDir, "active", "not-a-number"],
+      },
+    });
+
+    const result = await handleInit({}, ctx);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe("validation");
+      expect(result.error.message.toLowerCase()).toContain("staleness");
+    }
+  });
+});
