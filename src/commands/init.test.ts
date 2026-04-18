@@ -272,4 +272,27 @@ describe("handleInit — existing config", () => {
     const raw = await readFile(appPaths.configFilePath, "utf8");
     expect(raw).toBe("{}");
   });
+
+  test("overwrites existing config when --force is set", async () => {
+    const projectsDir = join(workdir, "Projects");
+    const { ctx, appPaths } = await buildContext(workdir, {
+      scripted: {
+        inputs: [projectsDir, "active", "60", "7"],
+        selects: ["__skip", "__skip"],
+        confirms: [false, true],
+      },
+    });
+
+    const { mkdir: nodeMkdir } = await import("node:fs/promises");
+    await nodeMkdir(appPaths.config, { recursive: true });
+    await writeFile(appPaths.configFilePath, '{"stale":true}', "utf8");
+
+    const result = await handleInit({ force: true }, ctx);
+
+    expect(result.ok).toBe(true);
+    const raw = await readFile(appPaths.configFilePath, "utf8");
+    const parsed = JSON.parse(raw) as GlobalConfig;
+    expect(parsed.root).toBe(projectsDir);
+    expect(parsed.defaults.staleness_days).toBe(60);
+  });
 });
