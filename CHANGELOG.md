@@ -6,6 +6,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-04-18
+
+### Added
+- `nook rename <project> <new-name>` command: renames a project's folder and its display name while preserving the project ID and history log. Validates `<new-name>` with the same character set as `nook new` (letters, digits, dot, underscore, hyphen; must start with letter or digit), rejects renaming to the same name, and fails with a filesystem error if the destination folder already exists. Records a `renamed` history event with `from`/`to`. Works in place for any state — for `shipped` or `archived` projects the folder stays under `shipped/` or `archived/` and only its basename changes. After rename, the project remains findable by ID prefix.
+- `nook delete <project>` command: permanently deletes a project's folder and all its contents. Prompts twice by default — an initial yes/no, then a typed confirmation where you must retype the project name exactly. `--yes` skips the initial prompt but the typed-name confirmation is always required; a mismatched name cancels the deletion without touching the folder.
+
 ## [0.3.0] - 2026-04-18
 
 ### Added
