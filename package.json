@@ -1,6 +1,6 @@
 {
   "name": "nook",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "A CLI tool for organizing local development projects by category and lifecycle state.",
   "type": "module",
   "bin": {

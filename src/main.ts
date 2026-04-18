@@ -154,10 +154,17 @@ export const main = async (
   });
 
   const appPaths = resolveAppPaths();
+  const storage = buildStorageFacade();
+
+  let config: GlobalConfig = PLACEHOLDER_CONFIG;
+  const configRead = await storage.readGlobalConfig(appPaths.configFilePath);
+  if (configRead.ok) {
+    config = configRead.value;
+  }
 
   const ctx: CommandContext = {
-    config: PLACEHOLDER_CONFIG,
-    storage: buildStorageFacade(),
+    config,
+    storage,
     ui,
     clock,
     random,

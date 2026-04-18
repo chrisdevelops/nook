@@ -6,6 +6,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-04-18
+
+### Added
+- `nook cd <project>` command: resolves the project reference and prints its absolute path. Intended to back the `nook-cd` shell wrapper so `cd "$(nook cd my-project)"` works without further glue.
+- `nook open <project>` command: opens the project folder in the OS file manager (`open` on macOS, `explorer` on Windows, `xdg-open` on Linux). Returns a filesystem error if the opener is unavailable or exits non-zero (Windows tolerates explorer's non-zero exit code).
+- `nook code <project>` command: launches the project in the configured editor (`editors.default`). `--with <editor>` overrides the default for this invocation. Fails with a validation error when no editor is configured and `--with` is not supplied.
+- `nook ai <project>` command: launches the configured AI tool (`ai.default`) with cwd set to the project path and inherited stdio. Fails with a validation error when `ai.default` is unset.
+- `nook alias` command: `nook alias` and `nook alias list` print configured aliases (one per line, sorted by name). Aliases defined under `aliases.<name>.command` in config are automatically registered as top-level `nook <alias> <project>` commands on startup (skipping any name that would shadow a built-in). Invoking an alias substitutes `{path}`, `{name}`, `{id}`, and `{category}` and runs the result via `sh -c` (`cmd /c` on Windows) with cwd set to the project path.
+- `nook scan` command: walks the configured project root, recomputes `last_touched` for each project (via mtime walk + git HEAD time), and upserts index rows whose cached entry is missing or older than the index TTL. `--category <name>` limits the scan to a single category. `--force` refreshes every row regardless of TTL. Reports how many projects were scanned and how many rows were updated.
+- `nook reindex` command: discovers every `.nook/project.jsonc` under the configured root and rebuilds the SQLite project index from scratch in a single transaction. Intended for when the cache is suspected to be corrupt or out of sync.
+- `nook doctor` command: diagnoses common project inconsistencies — category mismatches (metadata says one category but the folder is under another), state/folder mismatches (metadata says `shipped`/`archived` but the folder is not under `shipped/`/`archived/`, or vice versa), expired scratch projects past their prune window, orphan folders under categories without `.nook/project.jsonc`, and orphan index rows whose path no longer exists. Exits with a validation error when hard mismatches are found; warnings do not fail the command. `--fix` removes orphan index rows (the only fix that is unambiguously safe); other issues are reported only.
+- Startup now reads the global config (if present) into `CommandContext.config` so command handlers can rely on `ctx.config.root`, `ctx.config.categories`, and `ctx.config.aliases` without each re-reading the file. When the config is missing (e.g. before `nook init`), handlers fall back to the placeholder config as before.
+
 ## [0.5.0] - 2026-04-18
 
 ### Added
