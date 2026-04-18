@@ -128,6 +128,7 @@ const buildContext = async (
     },
     ui,
     clock: { now: () => NOW },
+    random: { next: () => 0 },
     cwd: workdir,
     appPaths,
     runResult: () => {},

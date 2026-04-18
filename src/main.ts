@@ -5,6 +5,7 @@ import { buildProgram } from "./cli/build-program.ts";
 import type {
   Clock,
   CommandContext,
+  Random,
   StorageFacade,
   UI,
 } from "./cli/command-types.ts";
@@ -40,6 +41,7 @@ export type MainOptions = {
   readonly cwd?: string;
   readonly packageVersion?: string;
   readonly clock?: Clock;
+  readonly random?: Random;
 };
 
 const defaultStdout: LoggerWritable = {
@@ -129,6 +131,7 @@ export const main = async (
   const cwd = options.cwd ?? process.cwd();
   const version = options.packageVersion ?? "0.0.0";
   const clock: Clock = options.clock ?? { now: () => Date.now() };
+  const random: Random = options.random ?? { next: () => Math.random() };
 
   const flags = parseGlobalFlags(argv);
   const ui = buildUi({
@@ -157,6 +160,7 @@ export const main = async (
     storage: buildStorageFacade(),
     ui,
     clock,
+    random,
     cwd,
     appPaths,
     runResult,

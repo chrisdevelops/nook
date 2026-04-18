@@ -27,6 +27,10 @@ export type Clock = {
   readonly now: () => number;
 };
 
+export type Random = {
+  readonly next: () => number;
+};
+
 export type StorageFacade = {
   readonly readProjectMetadata: typeof readProjectMetadata;
   readonly writeProjectMetadata: typeof writeProjectMetadata;
@@ -57,6 +61,7 @@ export type CommandContext = {
   readonly storage: StorageFacade;
   readonly ui: UI;
   readonly clock: Clock;
+  readonly random: Random;
   readonly cwd: string;
   readonly appPaths: AppPaths;
   readonly runResult: (result: Result<unknown, CommandError>) => void;

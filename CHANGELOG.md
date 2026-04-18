@@ -6,6 +6,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-04-18
+
+### Added
+- `nook new <name>` command: scaffolds a new project on disk. Defaults to `lab` with state `incubating`; `--category <name>` places the project in a configured category folder with state `active` (rejects reserved names `archived`/`shipped` and unknown categories). `--scratch` marks the project for auto-prune, `--description <text>` and `--tags <list>` set initial metadata, `--template <path>` copies a local source directory into the new folder, `--fork <project>` copies an existing project (excluding its `.nook/` metadata) via the same project lookup used elsewhere. `--template` and `--fork` are mutually exclusive. On success the new project has a `.nook/project.jsonc` + `history.jsonl` with a `created` event (`source: "new"`, plus `template`/`fork` pointer when relevant) and opens in the configured editor unless `--no-open` is passed.
+- `nook adopt <path>` command: brings an existing folder under nook management. The folder's basename becomes the project name (validated against the same character set as `nook new`). Defaults to category `lab` with state `incubating`; `--category <name>` picks a different (configured, non-reserved) category, and when the category isn't `lab` the default state becomes `active`. `--state <state>` overrides the default (must be one of `incubating`, `active`, `paused`, `maintained`, `shipped`, `archived`). `--description <text>` and `--tags <list>` set initial metadata. The folder is moved into `<root>/<category>/<name>` unless `--in-place` is passed; either way the folder receives a `.nook/project.jsonc` + `history.jsonl` with a `created` event (`source: "adopt"`). Refuses to adopt a folder that already contains `.nook/project.jsonc`.
+- `CommandContext` now carries a `random: { next: () => number }` source so command handlers can generate project IDs deterministically under test; `main.ts` wires `Math.random` in production.
+
+## [0.1.0] - 2026-04-18
+
 ### Added
 - Initial project scaffold: `bun` runtime, strict TypeScript, `nook` CLI entry point that prints `nook` and exits.
 - Pure-domain core: `Result<T, E>` type with `ok`/`err`/`isOk`/`isErr` helpers, project state union (`incubating`, `active`, `paused`, `maintained`, `shipped`, `archived`), project and config metadata type shapes, and the authoritative state-transition graph (`isValidTransition`, `allowedTargets`).
