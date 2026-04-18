@@ -364,3 +364,54 @@ describe("handleInit — validation", () => {
     }
   });
 });
+
+describe("handleInit — shell integration", () => {
+  let workdir: string;
+
+  beforeEach(async () => {
+    workdir = await mkdtemp(join(tmpdir(), "nook-init-"));
+  });
+
+  afterEach(async () => {
+    await rm(workdir, { recursive: true, force: true });
+  });
+
+  test("when user declines rc install, prints snippet and does not call installer", async () => {
+    const projectsDir = join(workdir, "Projects");
+    const { ctx, captured, rcCalls } = await buildContext(workdir, {
+      scripted: {
+        inputs: [projectsDir, "active", "60", "7"],
+        selects: ["__skip", "__skip"],
+        confirms: [false, true],
+      },
+    });
+
+    const result = await handleInit({}, ctx);
+
+    expect(result.ok).toBe(true);
+    expect(rcCalls).toEqual([]);
+    expect(
+      captured.info.some((l) => l.includes("Paste the snippet above")),
+    ).toBe(true);
+  });
+
+  test("when detectShell returns null, skips shell step gracefully", async () => {
+    const projectsDir = join(workdir, "Projects");
+    const { ctx, captured, rcCalls } = await buildContext(workdir, {
+      detectShell: () => null,
+      scripted: {
+        inputs: [projectsDir, "active", "60", "7"],
+        selects: ["__skip", "__skip"],
+        confirms: [true],
+      },
+    });
+
+    const result = await handleInit({}, ctx);
+
+    expect(result.ok).toBe(true);
+    expect(rcCalls).toEqual([]);
+    expect(
+      captured.info.some((l) => l.toLowerCase().includes("detect your shell")),
+    ).toBe(true);
+  });
+});
