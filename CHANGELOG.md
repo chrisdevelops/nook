@@ -6,6 +6,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-04-18
+
+### Fixed
+- `nook init` no longer overwrites existing shell rc files. Shell snippet installation now appends to the end of the file and never rewrites existing contents. If the snippet markers are already present, `nook init` leaves the file untouched.
+
+### Changed
+- `nook adopt <path>` auto-detects when the source folder is already at its canonical location inside the project root and adopts it in place without requiring `--in-place`. Category and state are inferred from the folder's location (`lab/` → `incubating`; `<category>/shipped/` → `shipped`; `<category>/archived/` → `archived`; otherwise `active`). Pass `--category` or `--state` to override.
+
+### Added
+- `nook scan` now reports untracked folders under configured categories as orphan warnings, with a hint on how to register them.
+- `nook scan --adopt-orphans` registers every untracked folder under a configured category in place, inferring category and state from the folder location.
+
 ## [0.6.0] - 2026-04-18
 
 ### Added

@@ -70,13 +70,15 @@ Create a new project. Defaults to the `lab` category.
 ### `nook adopt <path>`
 Bring an existing folder under nook management. Creates a `.nook/` directory containing `project.jsonc` and `history.jsonl`; moves the folder into the configured category if it is not already there.
 
+If the source path is already at its canonical location inside the project root (e.g. `<root>/oss/my-project` when `oss` is a configured category), adoption happens in place: no move, no conflict error. The category and state are inferred from the folder location (`lab/` → `incubating`; `<category>/shipped/` → `shipped`; `<category>/archived/` → `archived`; otherwise `active`). Pass `--category` or `--state` to override the inference.
+
 | Option | Description |
 |---|---|
-| `--category <name>` | Target category. Defaults to `lab` |
-| `--state <state>` | Initial state. Defaults to `active` if category is not lab, `incubating` otherwise |
+| `--category <name>` | Target category. Defaults to the inferred category or `lab` |
+| `--state <state>` | Initial state. Defaults to the inferred state for the source location |
 | `--description <text>` | Set the project description |
 | `--tags <list>` | Comma-separated tags |
-| `--in-place` | Do not move the folder; register it at its current path |
+| `--in-place` | Force in-place registration even when source is outside the project root |
 
 ---
 
@@ -249,12 +251,13 @@ User-defined commands for custom open actions. Aliases are defined in config und
 ## Maintenance
 
 ### `nook scan`
-Walk the project root, recompute `last_touched` for every project, refresh the index cache.
+Walk the project root, recompute `last_touched` for every tracked project, and refresh the index cache. Also reports any untracked folders found under configured categories as orphan warnings, so you can bring them under management.
 
 | Option | Description |
 |---|---|
 | `--category <name>` | Limit scan to a specific category |
 | `--force` | Ignore TTL and rescan everything |
+| `--adopt-orphans` | For each untracked folder under a configured category, register it in place with inferred category and state |
 
 ### `nook reindex`
 Rebuild the index cache from scratch by reading every `.nook/project.jsonc`. Used when the cache is suspected to be corrupt or out of sync.

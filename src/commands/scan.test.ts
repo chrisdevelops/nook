@@ -4,7 +4,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import type { CommandContext, UI } from "../cli/command-types.ts";
-import type { GlobalConfig, ProjectMetadata } from "../core/project-types.ts";
+import type {
+  CategoryConfig,
+  GlobalConfig,
+  ProjectMetadata,
+} from "../core/project-types.ts";
 import { resolveAppPaths } from "../platform/app-paths.ts";
 import { findProject } from "../storage/find-project.ts";
 import {
@@ -58,13 +62,24 @@ const writeProject = async (
 
 const buildContext = async (
   workdir: string,
-): Promise<{ ctx: CommandContext; rootDir: string; info: string[] }> => {
+  overrides?: { readonly categories?: readonly string[] },
+): Promise<{
+  ctx: CommandContext;
+  rootDir: string;
+  info: string[];
+  warn: string[];
+}> => {
   const appPaths = resolveAppPaths({
     platform: "linux",
     env: { XDG_CONFIG_HOME: join(workdir, "cfg") },
     homeDir: workdir,
   });
   const rootDir = join(workdir, "Projects");
+  const categoryNames = overrides?.categories ?? ["active", "lab"];
+  const categoryRecord: Record<string, CategoryConfig> = {};
+  for (const name of categoryNames) {
+    categoryRecord[name] = {};
+  }
   const config: GlobalConfig = {
     root: rootDir,
     defaults: {
@@ -75,7 +90,7 @@ const buildContext = async (
     },
     editors: {},
     ai: {},
-    categories: {},
+    categories: categoryRecord,
     aliases: {},
   };
   await mkdir(appPaths.config, { recursive: true });
@@ -87,10 +102,11 @@ const buildContext = async (
   await mkdir(rootDir, { recursive: true });
 
   const info: string[] = [];
+  const warn: string[] = [];
   const ui: UI = {
     logger: {
       info: (m) => info.push(m),
-      warn: () => {},
+      warn: (m) => warn.push(m),
       error: () => {},
       debug: () => {},
     },
@@ -138,7 +154,7 @@ const buildContext = async (
     runResult: () => {},
   };
 
-  return { ctx, rootDir, info };
+  return { ctx, rootDir, info, warn };
 };
 
 describe("handleScan", () => {
@@ -274,6 +290,71 @@ describe("handleScan", () => {
 
     expect(result.ok).toBe(true);
     expect(info).toEqual(["Scanned 1 project; updated 1."]);
+  });
+
+  test("reports untracked folders under configured categories as orphans", async () => {
+    const { ctx, rootDir, warn } = await buildContext(workdir, {
+      categories: ["oss"],
+    });
+    await mkdir(join(rootDir, "oss", "untracked-one"), { recursive: true });
+    await mkdir(join(rootDir, "oss", "untracked-two"), { recursive: true });
+
+    const result = await handleScan({}, ctx);
+
+    expect(result.ok).toBe(true);
+    const messages = warn.join("\n");
+    expect(messages).toContain("untracked-one");
+    expect(messages).toContain("untracked-two");
+    expect(messages).toContain("--adopt-orphans");
+  });
+
+  test("--adopt-orphans registers untracked folders at their current path", async () => {
+    const { ctx, rootDir, info } = await buildContext(workdir, {
+      categories: ["oss"],
+    });
+    const orphanPath = join(rootDir, "oss", "freshly-adopted");
+    await mkdir(orphanPath, { recursive: true });
+    await writeFile(join(orphanPath, "keep.txt"), "content", "utf8");
+
+    const result = await handleScan({ adoptOrphans: true }, ctx);
+
+    expect(result.ok).toBe(true);
+    // Preserved file contents.
+    const body = await import("node:fs/promises").then((m) =>
+      m.readFile(join(orphanPath, "keep.txt"), "utf8"),
+    );
+    expect(body).toBe("content");
+    // Metadata was written in place.
+    const meta = await import("node:fs/promises").then((m) =>
+      m.readFile(join(orphanPath, ".nook", "project.jsonc"), "utf8"),
+    );
+    const parsed = JSON.parse(meta) as ProjectMetadata;
+    expect(parsed.category).toBe("oss");
+    expect(parsed.state).toBe("active");
+    expect(parsed.name).toBe("freshly-adopted");
+
+    const summary = info.join("\n");
+    expect(summary).toContain("Adopted");
+  });
+
+  test("--adopt-orphans skips folders whose parent is not a configured category", async () => {
+    const { ctx, rootDir, warn } = await buildContext(workdir, {
+      categories: ["oss"],
+    });
+    await mkdir(join(rootDir, "oss", "good-orphan"), { recursive: true });
+    await mkdir(join(rootDir, "misc", "random-folder"), { recursive: true });
+
+    const result = await handleScan({ adoptOrphans: true }, ctx);
+
+    expect(result.ok).toBe(true);
+    // The misc/random-folder should not have .nook metadata.
+    const checkMeta = await import("node:fs/promises")
+      .then((m) => m.access(join(rootDir, "misc", "random-folder", ".nook")))
+      .then(() => true)
+      .catch(() => false);
+    expect(checkMeta).toBe(false);
+    // And we warned the user about it.
+    expect(warn.some((w) => w.includes("random-folder"))).toBe(true);
   });
 
   test("--category limits the scan", async () => {

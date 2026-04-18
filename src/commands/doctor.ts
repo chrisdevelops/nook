@@ -1,4 +1,4 @@
-import { access, readdir } from "node:fs/promises";
+import { access } from "node:fs/promises";
 import { relative, sep } from "node:path";
 import type { Command } from "commander";
 
@@ -7,6 +7,7 @@ import type { ProjectState } from "../core/project-types.ts";
 import { resolveCategoryConfig } from "../core/resolve-category-config.ts";
 import { err, isErr, ok } from "../core/result.ts";
 import { CommandError } from "../errors/command-error.ts";
+import { findOrphanFolders } from "../filesystem/find-orphan-folders.ts";
 import { closeIndex, queryProjects } from "../storage/project-index.ts";
 import {
   loadAllProjects,
@@ -23,11 +24,6 @@ type Finding = {
   readonly message: string;
   readonly fixable: boolean;
 };
-
-const RESERVED_SUBFOLDERS: ReadonlySet<string> = new Set([
-  "shipped",
-  "archived",
-]);
 
 const expectedStateForLocation = (
   relSegments: readonly string[],
@@ -114,53 +110,15 @@ const pathExists = async (path: string): Promise<boolean> => {
   }
 };
 
-const listSubdirs = async (dir: string): Promise<string[]> => {
-  try {
-    const entries = await readdir(dir, { withFileTypes: true });
-    return entries
-      .filter((e) => e.isDirectory() && !e.name.startsWith("."))
-      .map((e) => e.name);
-  } catch {
-    return [];
-  }
-};
-
-const findOrphanFolders = async (
-  rootDir: string,
-  knownProjectPaths: ReadonlySet<string>,
-): Promise<Finding[]> => {
-  const findings: Finding[] = [];
-  const topDirs = await listSubdirs(rootDir);
-  for (const top of topDirs) {
-    const topPath = `${rootDir}${sep}${top}`;
-    const children = await listSubdirs(topPath);
-    for (const child of children) {
-      const childPath = `${topPath}${sep}${child}`;
-      if (knownProjectPaths.has(childPath)) continue;
-      if (top !== "lab" && RESERVED_SUBFOLDERS.has(child)) {
-        const grandchildren = await listSubdirs(childPath);
-        for (const gc of grandchildren) {
-          const gcPath = `${childPath}${sep}${gc}`;
-          if (knownProjectPaths.has(gcPath)) continue;
-          findings.push({
-            severity: "warn",
-            code: "orphan_folder",
-            message: `${gcPath}: folder has no .nook/project.jsonc — not managed by nook`,
-            fixable: false,
-          });
-        }
-        continue;
-      }
-      findings.push({
-        severity: "warn",
-        code: "orphan_folder",
-        message: `${childPath}: folder has no .nook/project.jsonc — not managed by nook`,
-        fixable: false,
-      });
-    }
-  }
-  return findings;
-};
+const orphansToFindings = (
+  orphans: readonly { readonly path: string }[],
+): Finding[] =>
+  orphans.map((o) => ({
+    severity: "warn",
+    code: "orphan_folder",
+    message: `${o.path}: folder has no .nook/project.jsonc — not managed by nook`,
+    fixable: false,
+  }));
 
 const findOrphanIndexRows = async (
   ctx: CommandContext,
@@ -229,7 +187,9 @@ export const handleDoctor: CommandHandler<DoctorArgs> = async (args, ctx) => {
     findings.push(...checkExpiredScratch(rootDir, project, config, now));
   }
 
-  findings.push(...(await findOrphanFolders(rootDir, knownPaths)));
+  findings.push(
+    ...orphansToFindings(await findOrphanFolders(rootDir, knownPaths)),
+  );
 
   const { findings: indexFindings, orphanIds } =
     await findOrphanIndexRows(ctx);

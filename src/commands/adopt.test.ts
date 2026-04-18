@@ -352,6 +352,61 @@ describe("handleAdopt", () => {
     }
   });
 
+  test("auto-adopts in-place when source is already at canonical destination under a category", async () => {
+    const { ctx, rootDir } = await buildContext(workdir, {
+      categories: ["oss"],
+    });
+    const inPlacePath = join(rootDir, "oss", "already-here");
+    await mkdir(inPlacePath, { recursive: true });
+    await writeFile(join(inPlacePath, "README.md"), "preserved");
+
+    const result = await handleAdopt({ path: inPlacePath }, ctx);
+
+    expect(result.ok).toBe(true);
+    // File preserved, metadata written at original path, not moved.
+    const readme = await readFile(join(inPlacePath, "README.md"), "utf8");
+    expect(readme).toBe("preserved");
+    await access(join(inPlacePath, ".nook", "project.jsonc"));
+
+    const metadata = JSON.parse(
+      await readFile(join(inPlacePath, ".nook", "project.jsonc"), "utf8"),
+    ) as ProjectMetadata;
+    expect(metadata.category).toBe("oss");
+    expect(metadata.state).toBe("active");
+  });
+
+  test("auto-adopts in-place for a lab folder and infers 'incubating'", async () => {
+    const { ctx, rootDir } = await buildContext(workdir);
+    const inPlacePath = join(rootDir, "lab", "prototype");
+    await mkdir(inPlacePath, { recursive: true });
+
+    const result = await handleAdopt({ path: inPlacePath }, ctx);
+
+    expect(result.ok).toBe(true);
+    const metadata = JSON.parse(
+      await readFile(join(inPlacePath, ".nook", "project.jsonc"), "utf8"),
+    ) as ProjectMetadata;
+    expect(metadata.category).toBe("lab");
+    expect(metadata.state).toBe("incubating");
+  });
+
+  test("auto-adopts in-place for a folder under <category>/shipped and infers 'shipped'", async () => {
+    const { ctx, rootDir } = await buildContext(workdir, {
+      categories: ["oss"],
+    });
+    const shippedPath = join(rootDir, "oss", "shipped", "done-proj");
+    await mkdir(shippedPath, { recursive: true });
+
+    const result = await handleAdopt({ path: shippedPath }, ctx);
+
+    expect(result.ok).toBe(true);
+    const metadata = JSON.parse(
+      await readFile(join(shippedPath, ".nook", "project.jsonc"), "utf8"),
+    ) as ProjectMetadata;
+    expect(metadata.category).toBe("oss");
+    expect(metadata.state).toBe("shipped");
+  });
+
   test("applies description and tags", async () => {
     const { ctx, rootDir } = await buildContext(workdir);
     const externalPath = join(workdir, "external", "kappa");

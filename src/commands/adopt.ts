@@ -1,5 +1,5 @@
 import { access, stat } from "node:fs/promises";
-import { basename, isAbsolute, join, resolve } from "node:path";
+import { basename, isAbsolute, join, relative, resolve, sep } from "node:path";
 import type { Command } from "commander";
 
 import type { CommandContext } from "../cli/command-types.ts";
@@ -92,7 +92,28 @@ export const handleAdopt = async (
     );
   }
 
-  const category = args.category ?? "lab";
+  const rootRel = relative(ctx.config.root, sourceAbs);
+  const isInsideRoot =
+    rootRel.length > 0 && !rootRel.startsWith("..") && !isAbsolute(rootRel);
+  const rootSegments = isInsideRoot ? rootRel.split(sep) : [];
+  const inferredCategory =
+    rootSegments.length >= 2 &&
+    Object.prototype.hasOwnProperty.call(
+      ctx.config.categories,
+      rootSegments[0] as string,
+    )
+      ? (rootSegments[0] as string)
+      : null;
+  const inferredStateFromLocation: ProjectState | null =
+    rootSegments.length === 3 && rootSegments[1] === "shipped"
+      ? "shipped"
+      : rootSegments.length === 3 && rootSegments[1] === "archived"
+        ? "archived"
+        : rootSegments.length === 2 && rootSegments[0] === "lab"
+          ? "incubating"
+          : null;
+
+  const category = args.category ?? inferredCategory ?? "lab";
   if (RESERVED_CATEGORIES.has(category)) {
     return err(
       new CommandError(
@@ -121,16 +142,24 @@ export const handleAdopt = async (
       );
     }
     state = args.state;
+  } else if (inferredStateFromLocation !== null) {
+    state = inferredStateFromLocation;
   } else {
     state = category === "lab" ? "incubating" : "active";
   }
 
-  const destination =
-    args.inPlace === true
-      ? sourceAbs
-      : join(ctx.config.root, category, name);
+  const canonicalDestination =
+    state === "shipped"
+      ? join(ctx.config.root, category, "shipped", name)
+      : state === "archived"
+        ? join(ctx.config.root, category, "archived", name)
+        : join(ctx.config.root, category, name);
 
-  if (args.inPlace !== true && (await pathExists(destination))) {
+  const sourceAtCanonical = sourceAbs === canonicalDestination;
+  const effectiveInPlace = args.inPlace === true || sourceAtCanonical;
+  const destination = effectiveInPlace ? sourceAbs : canonicalDestination;
+
+  if (!effectiveInPlace && (await pathExists(destination))) {
     return err(
       new CommandError(
         "conflict",
@@ -139,7 +168,7 @@ export const handleAdopt = async (
     );
   }
 
-  if (args.inPlace !== true && sourceAbs !== destination) {
+  if (!effectiveInPlace && sourceAbs !== destination) {
     const moveResult = await moveProject({
       source: sourceAbs,
       destination,

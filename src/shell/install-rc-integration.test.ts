@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { appendFile, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -34,7 +34,8 @@ describe("installRcIntegration", () => {
 
   test("appends snippet to an existing file, preserving prior contents", async () => {
     const rcPath = join(workdir, ".zshrc");
-    await writeFile(rcPath, "export FOO=bar\nalias ll='ls -la'\n", "utf8");
+    const priorContent = "export FOO=bar\nalias ll='ls -la'\n";
+    await writeFile(rcPath, priorContent, "utf8");
     const snippet = generateSnippet("zsh");
 
     const result = await installRcIntegration({ rcPath, snippet });
@@ -44,15 +45,15 @@ describe("installRcIntegration", () => {
       expect(result.value).toBe("installed");
     }
     const content = await readFile(rcPath, "utf8");
-    expect(content).toContain("export FOO=bar");
-    expect(content).toContain("alias ll='ls -la'");
+    expect(content.startsWith(priorContent)).toBe(true);
     expect(content).toContain(snippet);
   });
 
-  test("returns 'unchanged' when the snippet block already matches exactly", async () => {
+  test("returns 'unchanged' when the marker block is already present", async () => {
     const rcPath = join(workdir, ".zshrc");
     const snippet = generateSnippet("zsh");
-    await writeFile(rcPath, `existing line\n\n${snippet}`, "utf8");
+    const priorContent = `existing line\n\n${snippet}`;
+    await writeFile(rcPath, priorContent, "utf8");
 
     const result = await installRcIntegration({ rcPath, snippet });
 
@@ -61,27 +62,26 @@ describe("installRcIntegration", () => {
       expect(result.value).toBe("unchanged");
     }
     const content = await readFile(rcPath, "utf8");
-    expect(content).toBe(`existing line\n\n${snippet}`);
+    expect(content).toBe(priorContent);
   });
 
-  test("replaces the snippet block in place when it has drifted", async () => {
+  test("leaves a drifted block alone and reports 'unchanged' (append-only is safe by design)", async () => {
     const rcPath = join(workdir, ".zshrc");
     const stale =
       "# >>> nook shell integration >>>\nold stale body\n# <<< nook shell integration <<<\n";
-    await writeFile(rcPath, `before\n${stale}after\n`, "utf8");
+    const before = `before\n${stale}after\n`;
+    await writeFile(rcPath, before, "utf8");
     const snippet = generateSnippet("zsh");
 
     const result = await installRcIntegration({ rcPath, snippet });
 
     expect(isOk(result)).toBe(true);
     if (isOk(result)) {
-      expect(result.value).toBe("updated");
+      expect(result.value).toBe("unchanged");
     }
     const content = await readFile(rcPath, "utf8");
-    expect(content).toContain("before\n");
-    expect(content).toContain("after\n");
-    expect(content).toContain(snippet.trimEnd());
-    expect(content).not.toContain("old stale body");
+    expect(content).toBe(before);
+    expect(content).toContain("old stale body");
   });
 
   test("running twice in a row is idempotent and returns 'unchanged' the second time", async () => {
@@ -120,6 +120,38 @@ describe("installRcIntegration", () => {
     expect(isOk(result)).toBe(true);
     const content = await readFile(rcPath, "utf8");
     expect(content).toContain("last line without newline\n");
+    expect(content).toContain(snippet);
+  });
+
+  test("preserves file inode when appending (no atomic rename / overwrite)", async () => {
+    const rcPath = join(workdir, ".zshrc");
+    await writeFile(rcPath, "line one\nline two\n", "utf8");
+    const before = await stat(rcPath);
+    const snippet = generateSnippet("zsh");
+
+    const result = await installRcIntegration({ rcPath, snippet });
+    expect(isOk(result)).toBe(true);
+
+    const after = await stat(rcPath);
+    expect(after.ino).toBe(before.ino);
+  });
+
+  test("does not lose unrelated content appended between two install runs", async () => {
+    const rcPath = join(workdir, ".zshrc");
+    const snippet = generateSnippet("zsh");
+
+    const first = await installRcIntegration({ rcPath, snippet });
+    expect(isOk(first)).toBe(true);
+
+    await appendFile(rcPath, "# added by user after install\nexport LATE=1\n");
+
+    const second = await installRcIntegration({ rcPath, snippet });
+    expect(isOk(second)).toBe(true);
+    if (isOk(second)) expect(second.value).toBe("unchanged");
+
+    const content = await readFile(rcPath, "utf8");
+    expect(content).toContain("# added by user after install");
+    expect(content).toContain("export LATE=1");
     expect(content).toContain(snippet);
   });
 });
