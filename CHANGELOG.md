@@ -6,6 +6,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-04-18
+
+### Added
+- `nook edit <project>` command: updates a project's metadata in place. Flags: `--description <text>` (pass `''` to clear), `--add-tag <tag>` (repeatable), `--remove-tag <tag>` (repeatable), `--notes <text>` (pass `''` to clear), `--clear-notes`. Records a `metadata_changed` history event listing which fields changed. Writes nothing when the supplied flags produce no effective change.
+- `notes` field on project metadata: optional free-text field surfaced under `nook info` (text and `--json` output) and editable via `nook edit`.
+
 ## [0.7.0] - 2026-04-18
 
 ### Fixed

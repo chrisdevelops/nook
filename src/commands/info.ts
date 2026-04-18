@@ -39,6 +39,9 @@ const renderDetail = (
   lines.push(
     `Description:  ${metadata.description !== undefined && metadata.description.length > 0 ? metadata.description : "—"}`,
   );
+  if (metadata.notes !== undefined && metadata.notes.length > 0) {
+    lines.push(`Notes:        ${metadata.notes}`);
+  }
   if (history !== null) {
     lines.push("");
     lines.push("History:");
@@ -65,6 +68,8 @@ const renderEvent = (event: HistoryEvent): string => {
       return `category_changed ${event.from} → ${event.to}`;
     case "touched":
       return `touched${event.reason !== undefined ? ` (${event.reason})` : ""}`;
+    case "metadata_changed":
+      return `metadata_changed (${event.changed_fields.join(", ")})`;
   }
 };
 
@@ -113,6 +118,7 @@ export const handleInfo: CommandHandler<InfoArgs> = async (args, ctx) => {
       ...(metadata.description !== undefined
         ? { description: metadata.description }
         : {}),
+      ...(metadata.notes !== undefined ? { notes: metadata.notes } : {}),
       ...(metadata.paused_until !== undefined
         ? { paused_until: metadata.paused_until }
         : {}),

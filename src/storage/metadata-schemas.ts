@@ -35,6 +35,7 @@ export const ProjectMetadataSchema = Type.Object({
   created_at: Type.Integer({ minimum: 0 }),
   tags: Type.Array(Type.String()),
   description: Type.Optional(Type.String()),
+  notes: Type.Optional(Type.String()),
   scratch: Type.Boolean(),
   paused_until: Type.Optional(Type.Integer({ minimum: 0 })),
 });
@@ -77,12 +78,19 @@ const HistoryEventTouchedSchema = Type.Object({
   reason: Type.Optional(Type.String()),
 });
 
+const HistoryEventMetadataChangedSchema = Type.Object({
+  type: Type.Literal("metadata_changed"),
+  at: Type.Integer({ minimum: 0 }),
+  changed_fields: Type.Array(Type.String({ minLength: 1 })),
+});
+
 export const HistoryEventSchema = Type.Union([
   HistoryEventCreatedSchema,
   HistoryEventStateChangedSchema,
   HistoryEventRenamedSchema,
   HistoryEventCategoryChangedSchema,
   HistoryEventTouchedSchema,
+  HistoryEventMetadataChangedSchema,
 ]);
 
 const CategoryConfigSchema = Type.Object({

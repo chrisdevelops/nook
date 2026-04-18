@@ -21,6 +21,7 @@ export type ProjectMetadata = {
   readonly created_at: number;
   readonly tags: readonly string[];
   readonly description?: string;
+  readonly notes?: string;
   readonly scratch: boolean;
   readonly paused_until?: number;
 };
@@ -63,12 +64,19 @@ export type HistoryEventTouched = {
   readonly reason?: string;
 };
 
+export type HistoryEventMetadataChanged = {
+  readonly type: "metadata_changed";
+  readonly at: number;
+  readonly changed_fields: readonly string[];
+};
+
 export type HistoryEvent =
   | HistoryEventCreated
   | HistoryEventStateChanged
   | HistoryEventRenamed
   | HistoryEventCategoryChanged
-  | HistoryEventTouched;
+  | HistoryEventTouched
+  | HistoryEventMetadataChanged;
 
 export type CategoryConfig = {
   readonly staleness_days?: number;

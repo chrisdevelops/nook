@@ -12,6 +12,7 @@ import { registerCodeCommand } from "../commands/code.ts";
 import { registerConfigCommand } from "../commands/config.ts";
 import { registerDeleteCommand } from "../commands/delete.ts";
 import { registerDoctorCommand } from "../commands/doctor.ts";
+import { registerEditCommand } from "../commands/edit.ts";
 import { registerInfoCommand } from "../commands/info.ts";
 import { registerInitCommand } from "../commands/init.ts";
 import { registerLsCommand } from "../commands/ls.ts";
@@ -50,6 +51,7 @@ export const registerCommands = (
   registerArchiveCommand(program, ctx);
   registerUnarchiveCommand(program, ctx);
   registerRenameCommand(program, ctx);
+  registerEditCommand(program, ctx);
   registerDeleteCommand(program, ctx);
   registerLsCommand(program, ctx);
   registerInfoCommand(program, ctx);

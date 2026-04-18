@@ -146,6 +146,17 @@ Permanently delete a project and all its contents. Requires typing the project n
 ### `nook rename <project> <new-name>`
 Rename a project. Updates the folder name and the display name in metadata. The project ID does not change; history is preserved.
 
+### `nook edit <project>`
+Edit project metadata in place: description, tags, and notes. At least one flag must be supplied. Records a `metadata_changed` history event listing which fields changed; does nothing (and writes no event) if the supplied flags produce no effective change.
+
+| Option | Description |
+|---|---|
+| `--description <text>` | Replace the description. Pass `''` to clear |
+| `--add-tag <tag>` | Add a tag. Repeat to add multiple |
+| `--remove-tag <tag>` | Remove a tag. Repeat to remove multiple |
+| `--notes <text>` | Set notes. Pass `''` to clear |
+| `--clear-notes` | Clear the notes field (incompatible with `--notes`) |
+
 ---
 
 ## Navigation and listing
