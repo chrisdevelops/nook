@@ -72,7 +72,20 @@ Mixed model:
 
 ## Versioning and changelog
 
-After completing a set of changes, follow this release workflow in order:
+After completing a set of changes, follow this release workflow in order.
+
+### When to run this workflow automatically
+
+Run the full workflow (bump version, update changelog, commit, tag) without asking **whenever a phase from the implementation plan completes successfully**. "Successfully" means:
+
+- Every task for the phase is implemented.
+- `bun test` passes cleanly and `bun run typecheck` is green.
+- No outstanding issues, skipped steps, or partial implementations.
+- You did not need further user input to finish the phase.
+
+If any of those are false — tests failing, blocked on a decision, incomplete scope, or you are mid-conversation asking the user a question — do **not** commit. Surface the blocker instead and wait.
+
+For smaller changes that are not a phase completion (ad-hoc fixes, refactors the user asked for directly), do not auto-release. Wait for the user to ask.
 
 ### 1. Bump the version in `package.json`
 
