@@ -244,3 +244,32 @@ describe("handleInit — happy path", () => {
     expect(captured.info.some((l) => l.includes("nook new"))).toBe(true);
   });
 });
+
+describe("handleInit — existing config", () => {
+  let workdir: string;
+
+  beforeEach(async () => {
+    workdir = await mkdtemp(join(tmpdir(), "nook-init-"));
+  });
+
+  afterEach(async () => {
+    await rm(workdir, { recursive: true, force: true });
+  });
+
+  test("returns conflict error when config exists and --force is not set", async () => {
+    const { ctx, appPaths } = await buildContext(workdir);
+    const { mkdir: nodeMkdir } = await import("node:fs/promises");
+    await nodeMkdir(appPaths.config, { recursive: true });
+    await writeFile(appPaths.configFilePath, "{}", "utf8");
+
+    const result = await handleInit({}, ctx);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe("conflict");
+      expect(result.error.message).toContain("--force");
+    }
+    const raw = await readFile(appPaths.configFilePath, "utf8");
+    expect(raw).toBe("{}");
+  });
+});
