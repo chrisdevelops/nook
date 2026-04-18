@@ -6,6 +6,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-04-18
+
+### Added
+- `nook promote <project>` command: moves an incubating project out of `lab/` into a category folder with state `active`. `--category <name>` picks the target; when omitted, `nook` prompts with the list of configured non-reserved categories. Rejects reserved names (`archived`, `shipped`, `lab`) and unknown categories. Records a `state_changed` (`incubating` → `active`) and a `category_changed` event in history, and fails with a filesystem error if a folder already exists at the destination.
+- `nook ship <project>` command: moves a project's folder into `<category>/shipped/` and sets state to `shipped`. Works from `incubating`, `active`, `paused`, and `maintained`; rejects `shipped` and `archived`. `--version <version>` records the shipped version in history. Paused projects have their `paused_until` cleared.
+- `nook unship <project>` command: returns a shipped project to `active`, moving its folder from `<category>/shipped/` back to `<category>/`. Rejects projects that are not shipped.
+- `nook archive <project>` command: moves a project's folder into `<category>/archived/` and sets state to `archived`. Prompts for confirmation unless `--yes` is passed; declining leaves the project untouched. `--reason <text>` records a reason in history. Works from every non-archived state (including `shipped`); paused projects have their `paused_until` cleared.
+- `nook unarchive <project>` command: restores an archived project to `active`, moving its folder from `<category>/archived/` back to `<category>/`. Rejects projects that are not archived.
+
 ## [0.2.0] - 2026-04-18
 
 ### Added
