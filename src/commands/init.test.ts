@@ -10,6 +10,7 @@ import { resolveAppPaths } from "../platform/app-paths.ts";
 import type { detectBinaryOnPath } from "../platform/detect-binary-on-path.ts";
 import type { detectShell } from "../shell/detect-shell.ts";
 import type { installRcIntegration } from "../shell/install-rc-integration.ts";
+import { findProject } from "../storage/find-project.ts";
 import {
   appendHistoryEvent,
   readHistoryEvents,
@@ -173,6 +174,7 @@ const buildContext = async (
       readGlobalConfig,
       writeGlobalConfig,
       openIndex,
+      findProject,
     },
     ui,
     clock: { now: () => 1_700_000_000_000 },

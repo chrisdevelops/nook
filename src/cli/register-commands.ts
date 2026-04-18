@@ -2,6 +2,10 @@ import type { Command } from "commander";
 
 import { registerConfigCommand } from "../commands/config.ts";
 import { registerInitCommand } from "../commands/init.ts";
+import { registerMaintainCommand } from "../commands/maintain.ts";
+import { registerPauseCommand } from "../commands/pause.ts";
+import { registerUnmaintainCommand } from "../commands/unmaintain.ts";
+import { registerUnpauseCommand } from "../commands/unpause.ts";
 import type { CommandContext } from "./command-types.ts";
 
 export const registerCommands = (
@@ -10,4 +14,8 @@ export const registerCommands = (
 ): void => {
   registerConfigCommand(program, ctx);
   registerInitCommand(program, ctx);
+  registerPauseCommand(program, ctx);
+  registerUnpauseCommand(program, ctx);
+  registerMaintainCommand(program, ctx);
+  registerUnmaintainCommand(program, ctx);
 };

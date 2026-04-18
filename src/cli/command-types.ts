@@ -6,6 +6,7 @@ import type { detectBinaryOnPath } from "../platform/detect-binary-on-path.ts";
 import type { launchEditor } from "../platform/launch-editor.ts";
 import type { detectShell } from "../shell/detect-shell.ts";
 import type { installRcIntegration } from "../shell/install-rc-integration.ts";
+import type { findProject } from "../storage/find-project.ts";
 import type { readGlobalConfig, writeGlobalConfig } from "../storage/global-config.ts";
 import type { openIndex } from "../storage/project-index.ts";
 import type { readHistoryEvents } from "../storage/project-history.ts";
@@ -34,6 +35,7 @@ export type StorageFacade = {
   readonly readGlobalConfig: typeof readGlobalConfig;
   readonly writeGlobalConfig: typeof writeGlobalConfig;
   readonly openIndex: typeof openIndex;
+  readonly findProject: typeof findProject;
 };
 
 export type UI = {

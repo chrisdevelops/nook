@@ -1,0 +1,37 @@
+{
+  "name": "nook",
+  "version": "0.1.0",
+  "description": "A CLI tool for organizing local development projects by category and lifecycle state.",
+  "type": "module",
+  "bin": {
+    "nook": "./bin/nook.ts"
+  },
+  "scripts": {
+    "start": "bun run bin/nook.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "build": "bun build --compile --minify --sourcemap bin/nook.ts --outfile dist/nook"
+  },
+  "engines": {
+    "bun": ">=1.3.0"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "dependencies": {
+    "@inquirer/prompts": "^8.4.1",
+    "@sinclair/typebox": "^0.34.49",
+    "commander": "^14.0.3",
+    "env-paths": "^4.0.0",
+    "ignore": "^7.0.5",
+    "write-file-atomic": "^7.0.1"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.12",
+    "@types/write-file-atomic": "^4.0.3",
+    "typescript": "^6.0.3"
+  }
+}

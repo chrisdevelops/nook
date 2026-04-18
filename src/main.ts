@@ -15,6 +15,7 @@ import { detectBinaryOnPath } from "./platform/detect-binary-on-path.ts";
 import { launchEditor } from "./platform/launch-editor.ts";
 import { detectShell } from "./shell/detect-shell.ts";
 import { installRcIntegration } from "./shell/install-rc-integration.ts";
+import { findProject } from "./storage/find-project.ts";
 import { readGlobalConfig, writeGlobalConfig } from "./storage/global-config.ts";
 import { openIndex } from "./storage/project-index.ts";
 import {
@@ -90,6 +91,7 @@ const buildStorageFacade = (): StorageFacade => ({
   readGlobalConfig,
   writeGlobalConfig,
   openIndex,
+  findProject,
 });
 
 const buildUi = (options: {

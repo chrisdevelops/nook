@@ -21,6 +21,7 @@ import {
   readGlobalConfig,
   writeGlobalConfig,
 } from "../storage/global-config.ts";
+import { findProject } from "../storage/find-project.ts";
 import { openIndex } from "../storage/project-index.ts";
 import type { Logger } from "../ui/logger.ts";
 import {
@@ -142,6 +143,7 @@ const buildContext = async (
       readGlobalConfig,
       writeGlobalConfig,
       openIndex,
+      findProject,
     },
     ui,
     clock: { now: () => 1_700_000_000_000 },

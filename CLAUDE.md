@@ -6,10 +6,14 @@ You are working on **nook**, a CLI tool for organizing local development project
 
 Two documents define the project. Read them before making non-trivial changes:
 
-- `docs/ARCHITECTURE.md` — runtime, deps, layer rules, storage model, testing approach, cross-platform strategy.
-- `docs/COMMANDS.md` — every CLI command, its args, options, state transitions, and behavior.
+- `.claude/docs/ARCHITECTURE.md` — runtime, deps, layer rules, storage model, testing approach, cross-platform strategy.
+- `.claude/docs/COMMANDS.md` — every CLI command, its args, options, state transitions, and behavior.
 
 If a task conflicts with either doc, stop and ask. Do not update the docs silently as part of implementation work.
+
+## Implementation plan
+
+The phased build plan lives outside the repo at `~/.claude/plans/i-want-to-begin-lexical-pnueli.md`. It decomposes the initial build into 20 sequential phases (bootstrap → core → storage → filesystem → UI → platform → shell → CLI plumbing → commands → e2e/release). Read the relevant phase before starting work; phases 0–6 are complete.
 
 ## Stack
 
@@ -31,7 +35,7 @@ If you find yourself importing `storage/` from `core/`, stop — the logic belon
 
 ## Command shape
 
-Every command file exports two things: `register*Command(cli, ctx)` for cac wiring and `handle*(args, ctx): Promise<Result<void, CommandError>>` as the pure handler. See `src/commands/pause.ts` as the canonical example. Handlers return `Result`; they never call `process.exit` or `console.log`.
+Every command file exports two things: `register*Command(program, ctx)` for commander wiring and `handle*(args, ctx): Promise<Result<void, CommandError>>` as the pure handler. See `src/commands/pause.ts` as the canonical example. Handlers return `Result`; they never call `process.exit` or `console.log`.
 
 ## Error handling
 

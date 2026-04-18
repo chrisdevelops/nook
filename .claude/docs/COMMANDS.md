@@ -34,7 +34,7 @@ First-run setup. Creates the project root, default category folders, and global 
 | Option | Description |
 |---|---|
 | `--root <path>` | Project root directory. Defaults to `~/Projects` |
-| `--categories <list>` | Comma-separated category names. Defaults to `client,oss,personal` |
+| `--categories <list>` | Comma-separated category names. Defaults to `active` |
 | `--force` | Overwrite existing config if present |
 
 ### `nook config`
@@ -47,6 +47,8 @@ View or modify global configuration. With no subcommand, prints the current conf
 | `edit` | Open config file in `$EDITOR` |
 | `path` | Print path to config file |
 | `cd` | Print the config folder path for shell integration |
+
+Config keys use dot notation mapping to the JSONC structure (e.g. `defaults.staleness_days`, `editors.default`, `categories.client.staleness_days`, `aliases.zed.command`).
 
 ---
 
@@ -66,7 +68,7 @@ Create a new project. Defaults to the `lab` category.
 | `--no-open` | Do not open the project after creation (default is to open in configured editor) |
 
 ### `nook adopt <path>`
-Bring an existing folder under nook management. Creates `.nook.toml` and `.nook/` files in the target folder; moves the folder into the configured category if it is not already there.
+Bring an existing folder under nook management. Creates a `.nook/` directory containing `project.jsonc` and `history.jsonl`; moves the folder into the configured category if it is not already there.
 
 | Option | Description |
 |---|---|
@@ -206,19 +208,24 @@ Print the project's absolute path. Shell integration (a wrapper function in `.zs
 
 ## Aliases
 
-User-defined commands for custom open actions. Aliases are defined in config under `[aliases.<name>]` and invoked as `nook <name> <project>`.
+User-defined commands for custom open actions. Aliases are defined in config under `aliases.<name>` and invoked as `nook <name> <project>`.
 
 ### Alias definition
 
-```toml
-[aliases.zed]
-command = "zed {path}"
-
-[aliases.cursor]
-command = "cursor {path}"
-
-[aliases.cc-tmux]
-command = "tmux new-session -d -s {name} -c {path} 'claude'"
+```jsonc
+{
+  "aliases": {
+    "zed": {
+      "command": "zed {path}"
+    },
+    "cursor": {
+      "command": "cursor {path}"
+    },
+    "cc-tmux": {
+      "command": "tmux new-session -d -s {name} -c {path} 'claude'"
+    }
+  }
+}
 ```
 
 ### Substitution variables
@@ -250,10 +257,10 @@ Walk the project root, recompute `last_touched` for every project, refresh the i
 | `--force` | Ignore TTL and rescan everything |
 
 ### `nook reindex`
-Rebuild the index cache from scratch by reading every `.nook.toml`. Used when the cache is suspected to be corrupt or out of sync.
+Rebuild the index cache from scratch by reading every `.nook/project.jsonc`. Used when the cache is suspected to be corrupt or out of sync.
 
 ### `nook doctor`
-Diagnose common issues: orphaned folders (no `.nook.toml`), orphaned metadata (TOML pointing at missing folder), category mismatches (TOML says `client` but folder is in `personal/`), expired scratch projects pending prune, state/folder mismatches (TOML says `shipped` but folder is in category root).
+Diagnose common issues: orphaned folders (no `.nook/project.jsonc`), orphaned metadata (metadata pointing at missing folder), category mismatches (metadata says `client` but folder is in `personal/`), expired scratch projects pending prune, state/folder mismatches (metadata says `shipped` but folder is in category root).
 
 | Option | Description |
 |---|---|
@@ -263,33 +270,47 @@ Diagnose common issues: orphaned folders (no `.nook.toml`), orphaned metadata (T
 
 ## Configuration reference
 
-Relevant config keys for the commands above:
+The global config lives at `<config-dir>/nook/config.jsonc` (see architecture doc for `<config-dir>` resolution per OS). Example:
 
-```toml
-root = "~/Projects"
+```jsonc
+{
+  // Root directory where all projects live
+  "root": "~/Projects",
 
-[defaults]
-staleness_days = 60
-on_stale = "prompt"
-scratch_prune_days = 7
-pause_max_days = 90
+  "defaults": {
+    "staleness_days": 60,
+    "on_stale": "prompt",
+    "scratch_prune_days": 7,
+    "pause_max_days": 90
+  },
 
-[editors]
-default = "code"
+  "editors": {
+    "default": "code"
+  },
 
-[ai]
-default = "claude"
+  "ai": {
+    "default": "claude"
+  },
 
-[categories.lab]
-staleness_days = 14
-on_stale = "prompt_prune"
+  "categories": {
+    "lab": {
+      "staleness_days": 14,
+      "on_stale": "prompt_prune"
+    },
+    "active": {
+      // inherits defaults
+    }
+  },
 
-[categories.client]
-# inherits defaults
-
-[aliases.zed]
-command = "zed {path}"
+  "aliases": {
+    "zed": {
+      "command": "zed {path}"
+    }
+  }
+}
 ```
+
+Per-project metadata lives at `<project>/.nook/project.jsonc` and is managed by the CLI. Direct hand-editing is supported but not expected.
 
 ---
 

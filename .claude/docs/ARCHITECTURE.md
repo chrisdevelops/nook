@@ -18,7 +18,7 @@ Six total. Each earns its place.
 
 |Package|Purpose|Why we take the dep|
 |---|---|---|
-|`cac`|Argv parser, command registration, help generation|Argv edge cases (combined short flags, `=` vs space, `--` passthrough, subcommand routing) are a long tail of bug reports. Small, focused.|
+|`commander`|Argv parser, command registration, help generation|Argv edge cases (combined short flags, `=` vs space, `--` passthrough, subcommand routing) are a long tail of bug reports. First-class nested subcommand trees (`config get`, `alias list`, etc.) with auto-generated per-subcommand `--help`, async actions via `parseAsync`, and bundled TypeScript types.|
 |`@sinclair/typebox`|Schema types with runtime validation|Standard in your stack. Used for all persisted shapes.|
 |`@inquirer/prompts`|Interactive select, confirm, input|Raw-mode stdin, cursor math, and Windows terminal quirks are weeks of work. One well-maintained dep.|
 |`ignore`|`.gitignore` / `.nookignore` matching|gitignore semantics (negation, directory markers, globstars) are genuinely nontrivial.|
@@ -50,10 +50,10 @@ nook/
 ├── bin/
 │   └── nook.ts                     # shebang, invokes src/main.ts
 ├── src/
-│   ├── main.ts                     # create cac instance, register commands, parse, top-level error catch
+│   ├── main.ts                     # create commander program, register commands, parseAsync, top-level error catch
 │   │
 │   ├── cli/
-│   │   ├── build-cac-instance.ts   # configures the cac instance (name, version, global flags)
+│   │   ├── build-program.ts        # configures the commander program (name, version, global flags)
 │   │   ├── register-commands.ts    # imports every src/commands/* and calls its register()
 │   │   └── run-command-handler.ts  # wrapper: invoke handler, render Result, set exit code
 │   │
@@ -157,7 +157,7 @@ Dependencies flow in one direction. A layer may depend on layers below it, never
 ```
 main.ts
   │
-  ├── cli/         (cac instance + command registration + handler wrapper)
+  ├── cli/         (commander program + command registration + handler wrapper)
   │
   └── commands/    (thin handlers: validate input, call core, call storage, render via ui)
         │
@@ -178,13 +178,15 @@ main.ts
 
 ### Command shape
 
-Each command file exports two things: a `register` function that wires the command into cac, and a pure `handler` function that does the work and returns a `Result`. This split keeps the handler directly testable without involving cac.
+Each command file exports two things: a `register` function that wires the command into commander, and a pure `handler` function that does the work and returns a `Result`. This split keeps the handler directly testable without involving commander.
+
+### Flat command (single handler)
 
 ```ts
 // src/commands/pause.ts
-import type { CAC } from 'cac';
+import type { Command } from 'commander';
 import type { CommandContext, CommandHandler } from '../cli/command-types';
-import { err, ok, type Result } from '../core/result';
+import { ok, type Result } from '../core/result';
 
 type PauseArgs = {
   project: string;
@@ -194,24 +196,69 @@ type PauseArgs = {
 };
 
 export const handlePause: CommandHandler<PauseArgs> = async (args, ctx) => {
-  // pure orchestration — no cac, no process.exit, no stdout
+  // pure orchestration — no commander, no process.exit, no stdout
   // returns Result<void, CommandError>
 };
 
-export const registerPauseCommand = (cli: CAC, ctx: CommandContext): void => {
-  cli
-    .command('pause <project>', 'Pause a project')
+export const registerPauseCommand = (program: Command, ctx: CommandContext): void => {
+  program
+    .command('pause <project>')
+    .description('Pause a project')
     .option('--days <n>', 'Pause duration in days')
     .option('--until <date>', 'Pause until ISO date')
     .option('--reason <text>', 'Reason, recorded in history')
-    .action(async (project, options) => {
-      const result = await handlePause({ project, ...options }, ctx);
+    .action(async (project: string, options: { days?: string; until?: string; reason?: string }) => {
+      const result = await handlePause({ project, ...options, days: options.days ? Number(options.days) : undefined }, ctx);
       ctx.runResult(result);  // renders Result, sets exit code
     });
 };
 ```
 
-`register-commands.ts` imports every `src/commands/*.ts` and calls each `register*Command(cli, ctx)` in a flat list. No dynamic discovery, no decorators.
+### Nested subcommands (e.g. `config get`, `config set`, `alias list`)
+
+```ts
+// src/commands/config.ts
+import type { Command } from 'commander';
+import type { CommandContext } from '../cli/command-types';
+
+export const registerConfigCommand = (program: Command, ctx: CommandContext): void => {
+  const config = program
+    .command('config')
+    .description('View or modify configuration')
+    .action(async () => {
+      // Runs when user types `nook config` with no subcommand
+      ctx.runResult(await handleConfigShow({}, ctx));
+    });
+
+  config
+    .command('get <key>')
+    .description('Print a single config value')
+    .action(async (key: string) => {
+      ctx.runResult(await handleConfigGet({ key }, ctx));
+    });
+
+  config
+    .command('set <key> <value>')
+    .description('Update a config value')
+    .action(async (key: string, value: string) => {
+      ctx.runResult(await handleConfigSet({ key, value }, ctx));
+    });
+
+  // ...and so on for edit / path / cd
+};
+```
+
+Commander gives `nook config --help` (lists subcommands) and `nook config get --help` (help for just `get`) for free. Async `.action()` callbacks are awaited by `program.parseAsync(...)` in `main.ts`.
+
+`register-commands.ts` imports every `src/commands/*.ts` and calls each `register*Command(program, ctx)` in a flat list. No dynamic discovery, no decorators.
+
+### Global flags
+
+Global flags like `--quiet`, `--verbose`, `--no-color`, `--root` live on the root program. Because we need them to configure the logger *before* commander dispatches, `main.ts` pre-parses them manually from argv (a small `parseGlobalFlags` helper) and builds the `CommandContext.ui` accordingly. Commander still registers them so they appear in `--help` and are not treated as unknown options, but the runtime values come from our pre-parse.
+
+### Exit code and error handling
+
+Commander calls `process.exit` by default on unknown commands and missing required args. `build-program.ts` calls `.exitOverride()` so those surface as `CommanderError` throws that `main.ts` can catch and translate into a `Result` through `ctx.runResult`. Handler errors (a returned `Result<_, CommandError>`) go through `ctx.runResult` directly.
 
 ### Command context
 
@@ -226,7 +273,7 @@ export type CommandContext = {
 };
 ```
 
-Only `Clock` is a real abstraction. Everything else is the concrete thing wired at startup in `main.ts`. Tests build a `CommandContext` directly with a fake clock and a temp-dir `cwd`, then call `handlePause(args, ctx)` — cac is not involved.
+Only `Clock` is a real abstraction. Everything else is the concrete thing wired at startup in `main.ts`. Tests build a `CommandContext` directly with a fake clock and a temp-dir `cwd`, then call `handlePause(args, ctx)` — commander is not involved.
 
 ### `runResult` — why it exists
 
@@ -338,7 +385,7 @@ No `unwrap`. Callers pattern-match or pass the error up. Failures stay visible a
 
 - **Unit tests** for everything in `core/` — pure functions, no setup.
 - **Storage tests** use `bun test`'s temp dir helpers. Real filesystem, real SQLite, real `write-file-atomic`, isolated per test.
-- **Command tests** call the exported `handle*` function directly with a fake `Clock`, temp `cwd`, and a capturing `runResult`. cac never enters the test. This is why handler and registration are split.
+- **Command tests** call the exported `handle*` function directly with a fake `Clock`, temp `cwd`, and a capturing `runResult`. Commander never enters the test. This is why handler and registration are split.
 - **CLI-level tests** (a handful) exercise the whole pipeline: spawn the compiled binary in a temp dir, assert on stdout and filesystem state. Cross-platform in CI matrix (`ubuntu`, `macos`, `windows`).
 
 Test file next to its source. Red, green, refactor.
