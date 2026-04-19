@@ -13,13 +13,13 @@ Requires [Bun](https://bun.sh) 1.3+ on your PATH — `nook` ships as a Bun
 script to keep the published package small.
 
 ```
-npm install -g @chrisdevelops/nook
+npm install -g @chris_develops/nook
 ```
 
 or with Bun:
 
 ```
-bun add -g @chrisdevelops/nook
+bun add -g @chris_develops/nook
 ```
 
 The installed CLI is still invoked as `nook`.

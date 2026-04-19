@@ -1,6 +1,6 @@
 {
-  "name": "@chrisdevelops/nook",
-  "version": "0.10.1",
+  "name": "@chris_develops/nook",
+  "version": "0.10.2",
   "description": "A CLI tool for organizing local development projects by category and lifecycle state.",
   "type": "module",
   "license": "MIT",
