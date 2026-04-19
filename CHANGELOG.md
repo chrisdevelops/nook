@@ -6,6 +6,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-04-18
+
+### Changed
+- Package published on npm as `@chrisdevelops/nook` (the unscoped `nook` name was already taken by an unrelated package). Install with `npm install -g @chrisdevelops/nook`; the CLI binary is still invoked as `nook`.
+
 ## [0.10.0] - 2026-04-18
 
 ### Added
