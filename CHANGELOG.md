@@ -6,6 +6,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-04-18
+
+### Added
+- Prebuilt binaries for macOS (arm64, x64), Linux (x64, arm64), and Windows (x64) attached to every GitHub release.
+- npm package published on release: install globally with `npm install -g nook` (requires Bun on PATH).
+- End-to-end test suite in `test/e2e/` exercising the compiled binary across the `new` → `ls` → `pause` → `unpause` lifecycle, `adopt` + `archive`, and `doctor --fix` golden paths. Run with `bun run test:e2e`; the default `bun test` runs only the fast unit tests under `src/`.
+- GitHub Actions CI matrix on Ubuntu, macOS, and Windows: typecheck, unit tests, CLI smoke, and end-to-end tests.
+- `README.md` with install instructions and quickstart.
+- MIT license.
+
 ## [0.9.0] - 2026-04-18
 
 ### Changed
